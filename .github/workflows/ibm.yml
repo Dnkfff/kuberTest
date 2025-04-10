@@ -1,0 +1,59 @@
+name: Build and Deploy React to IKS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*' # Use a Long Term Support version of Node.js
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to IBM Cloud Container Registry
+        uses: ibm-cloud/ibm-cloud-cli-action@v2
+        with:
+          args: login -r ${{ secrets.IBM_CLOUD_REGION }} -k ${{ secrets.IBM_CLOUD_API_KEY }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ secrets.CONTAINER_REGISTRY_NAMESPACE }}/${{ github.event.repository.name }}:${{ github.sha }}
+
+      - name: Set up Kubernetes tools
+        uses: kubernetes-actions/setup-kubectl@v3
+        with:
+          kubeconfig: ${{ steps.connect-to-iks.outputs.kubeconfig }}
+
+      - name: Connect to IKS cluster
+        id: connect-to-iks
+        uses: ibm-cloud/ibm-cloud-cli-action@v2
+        with:
+          args: ks cluster config --cluster ${{ secrets.IKS_CLUSTER_NAME }} --export
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/deployment.yaml -n ${{ secrets.KUBE_NAMESPACE || 'default' }}
+          kubectl apply -f k8s/service.yaml -n ${{ secrets.KUBE_NAMESPACE || 'default' }}
