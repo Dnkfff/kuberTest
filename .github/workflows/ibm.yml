@@ -30,7 +30,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to IBM Cloud Container Registry
-        uses: ibm-cloud/ibm-cloud-cli-action@v2
+        uses: ibm-cloud/ibm-cloud-cli-action
         with:
           args: login -r ${{ secrets.IBM_CLOUD_REGION }} -k ${{ secrets.IBM_CLOUD_API_KEY }}
 
