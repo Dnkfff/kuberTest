@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react-app-deployment
+  namespace: ${{ secrets.KUBE_NAMESPACE || 'default' }}
+spec:
+  replicas: 2 # Adjust as needed
+  selector:
+    matchLabels:
+      app: react-app
+  template:
+    metadata:
+      labels:
+        app: react-app
+    spec:
+      containers:
+        - name: react-app-container
+          image: icr.io/${{ secrets.IBM_CLOUD_REGION }}.containers.cloud.ibm.com/${{ secrets.CONTAINER_REGISTRY_NAMESPACE }}/${{ github.event.repository.name }}:${{ github.sha }}
+          ports:
+            - containerPort: 80
+            
